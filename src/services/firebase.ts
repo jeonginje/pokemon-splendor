@@ -16,15 +16,16 @@ import type { GameState, PlayerState } from '../types/game';
 export interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
-  databaseURL?: string;
+  databaseURL: string;
   projectId: string;
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  measurementId?: string;
 }
 
-// 🔑 프로젝트 기본 내장 Firebase 설정
-export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+// 🔥 사용자가 제공한 실제 Firebase Config 키 (완벽 덮어쓰기)
+export const firebaseConfig: FirebaseConfig = {
   apiKey: "AIzaSyDuz-fugu1kzJJRYaUFYcb9e4DL44bHUVc",
   authDomain: "splenderpoke.firebaseapp.com",
   databaseURL: "https://splenderpoke-default-rtdb.firebaseio.com",
@@ -32,47 +33,20 @@ export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
   storageBucket: "splenderpoke.firebasestorage.app",
   messagingSenderId: "429630255604",
   appId: "1:429630255604:web:69d019fdde4f77050c89a1",
+  measurementId: "G-B1R3T7GQKX"
 };
+
+export const DEFAULT_FIREBASE_CONFIG = firebaseConfig;
 
 const STORAGE_KEY = 'pokemon_splendor_firebase_config';
 
-// 1. 설정 로드: index.html 전역 객체 -> localStorage -> 환경 변수 -> 기본 내장 설정 순서
+// 1. 설정 로드: 항상 실제 내장된 firebaseConfig를 최우선으로 적용 (구버전 캐시 방지)
 export function getStoredFirebaseConfig(): FirebaseConfig {
-  // A. index.html의 window.firebaseConfig 확인
-  if (typeof window !== 'undefined' && (window as any).firebaseConfig) {
-    const htmlConfig = (window as any).firebaseConfig;
-    if (htmlConfig.apiKey && (htmlConfig.projectId || htmlConfig.databaseURL)) {
-      return {
-        apiKey: htmlConfig.apiKey,
-        authDomain: htmlConfig.authDomain || `${htmlConfig.projectId}.firebaseapp.com`,
-        databaseURL:
-          htmlConfig.databaseURL ||
-          (htmlConfig.projectId ? `https://${htmlConfig.projectId}-default-rtdb.firebaseio.com` : ''),
-        projectId: htmlConfig.projectId || '',
-        storageBucket: htmlConfig.storageBucket || '',
-        messagingSenderId: htmlConfig.messagingSenderId || '',
-        appId: htmlConfig.appId || '',
-      };
-    }
-  }
-
-  // B. localStorage 확인
   if (typeof window !== 'undefined') {
-    const localStored = localStorage.getItem(STORAGE_KEY);
-    if (localStored) {
-      try {
-        const parsed = JSON.parse(localStored);
-        if (parsed.apiKey && (parsed.projectId || parsed.databaseURL)) {
-          return parsed;
-        }
-      } catch {
-        // ignore
-      }
-    }
+    // index.html 전역 등록
+    (window as any).firebaseConfig = firebaseConfig;
   }
-
-  // C. 기본 내장 설정 반환
-  return DEFAULT_FIREBASE_CONFIG;
+  return firebaseConfig;
 }
 
 export function saveStoredFirebaseConfig(config: FirebaseConfig) {
@@ -85,10 +59,10 @@ let app: FirebaseApp | null = null;
 let db: Database | null = null;
 
 /**
- * Firebase Realtime Database 초기화
+ * Firebase Realtime Database 초기화 (실제 통신 연결 수립)
  */
 export function initFirebase(customConfig?: FirebaseConfig): Database | null {
-  const config = customConfig || getStoredFirebaseConfig();
+  const config = customConfig || firebaseConfig;
   if (!config || !config.apiKey) {
     return null;
   }
@@ -100,14 +74,21 @@ export function initFirebase(customConfig?: FirebaseConfig): Database | null {
       app = getApps()[0];
     }
 
-    // databaseURL이 지정된 경우 해당 URL로 Realtime Database 인스턴스 획득
-    if (config.databaseURL) {
-      db = getDatabase(app, config.databaseURL);
-    } else {
-      db = getDatabase(app);
-    }
+    // databaseURL 필수 지정으로 Realtime Database 인스턴스 획득
+    db = getDatabase(app, config.databaseURL);
 
-    console.log('[Firebase RTDB] Initialized with config:', config.projectId || config.databaseURL);
+    console.log(`[Firebase RTDB] Initialized successfully! Project: ${config.projectId}, DatabaseURL: ${config.databaseURL}`);
+
+    // 🟢 실제 Realtime Database 서버 연결 상태 실시간 모니터링
+    const connectedRef = ref(db, '.info/connected');
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        console.log('[Firebase RTDB] 🟢 Realtime Database SERVER CONNECTED SUCCESSFULLY! (서버 실시간 연결 성공)');
+      } else {
+        console.log('[Firebase RTDB] 🟡 Connecting to Realtime Database server...');
+      }
+    });
+
     return db;
   } catch (error) {
     console.error('[Firebase RTDB] Initialization error:', error);
