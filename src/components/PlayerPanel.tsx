@@ -24,6 +24,8 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   onCaptureReserved,
   onEvolveReserved,
 }) => {
+  if (!player) return null;
+
   // '손에 보관' 창은 게임 시작부터 항상 열려있도록 기본값 true
   const [showReservedDetail, setShowReservedDetail] = useState(true);
   const trainer = TRAINER_TILES.find((t) => t.id === player.trainerId) || TRAINER_TILES[0];
@@ -120,10 +122,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           {/* 6개 볼 토큰 가로 정렬 (줄바꿈 허용, gap: 8px) */}
           <div className="flex items-center flex-wrap gap-2 pt-0.5">
             {NORMAL_BALL_TYPES.map((b) => (
-              <BallToken key={b} type={b} count={player.balls[b]} size="sm" />
+              <BallToken key={b} type={b} count={player.balls?.[b] || 0} size="sm" />
             ))}
             <div className="h-6 w-px bg-slate-700 mx-0.5 shrink-0" />
-            <BallToken type="master" count={player.balls.master} size="sm" />
+            <BallToken type="master" count={player.balls?.master || 0} size="sm" />
           </div>
         </div>
 

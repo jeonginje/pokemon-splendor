@@ -17,6 +17,8 @@ export const DiscardBallsModal: React.FC<DiscardBallsModalProps> = ({
   onConfirmDiscard,
 }) => {
   const player = gameState.players[playerIndex];
+  if (!player || !player.balls) return null;
+
   const totalBalls = getPlayerTotalBalls(player);
   const excessCount = Math.max(0, totalBalls - 10);
 

@@ -65,7 +65,8 @@ export function getPlayerBonuses(player: PlayerState): Record<BallType, number> 
 }
 
 // 플레이어의 총 볼 토큰 개수
-export function getPlayerTotalBalls(player: PlayerState): number {
+export function getPlayerTotalBalls(player?: PlayerState | null): number {
+  if (!player || !player.balls) return 0;
   return Object.values(player.balls).reduce((sum, count) => sum + count, 0);
 }
 

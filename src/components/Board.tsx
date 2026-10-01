@@ -365,7 +365,10 @@ export const Board: React.FC<BoardProps> = ({
       )}
 
       {/* 10개 초과 토큰 반환 모달 */}
-      {gameState.discardingPlayerIndex !== null && (
+      {typeof gameState.discardingPlayerIndex === 'number' &&
+        gameState.discardingPlayerIndex !== null &&
+        gameState.players &&
+        gameState.players[gameState.discardingPlayerIndex] && (
         <DiscardBallsModal
           gameState={gameState}
           playerIndex={gameState.discardingPlayerIndex}

@@ -192,6 +192,16 @@ export function sanitizeGameState(raw: any): GameState {
     rareDeck: Array.isArray(raw.rareDeck) ? raw.rareDeck : [],
     legendaryDeck: Array.isArray(raw.legendaryDeck) ? raw.legendaryDeck : [],
     logs: Array.isArray(raw.logs) ? raw.logs : raw.logs ? Object.values(raw.logs) : [],
+    discardingPlayerIndex:
+      typeof raw.discardingPlayerIndex === 'number' && raw.discardingPlayerIndex >= 0 && raw.discardingPlayerIndex < players.length
+        ? raw.discardingPlayerIndex
+        : null,
+    winnerId: raw.winnerId || null,
+    winnerReason: raw.winnerReason || undefined,
+    turnTimeLimit: typeof raw.turnTimeLimit === 'number' ? raw.turnTimeLimit : 0,
+    turnStartTime: typeof raw.turnStartTime === 'number' ? raw.turnStartTime : Date.now(),
+    hasEvolvedThisTurn: !!raw.hasEvolvedThisTurn,
+    actionTakenThisTurn: !!raw.actionTakenThisTurn,
   };
 }
 
