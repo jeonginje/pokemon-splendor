@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 포켓몬 스플렌더 게임 방 데이터: 모든 사용자가 읽기 및 쓰기 허용 (allow read, write)
+    match /pokemon_splendor_rooms/{roomId} {
+      allow read, write: if true;
+    }
+  }
+}
