@@ -8,6 +8,7 @@ import {
   onValue,
   off,
   update,
+  runTransaction,
 } from 'firebase/database';
 import type { Database } from 'firebase/database';
 import type { GameState, PlayerState } from '../types/game';
@@ -112,6 +113,12 @@ export function initFirebase(customConfig?: FirebaseConfig): Database | null {
     console.error('[Firebase RTDB] Initialization error:', error);
     return null;
   }
+}
+
+function cleanPayload(obj: any): any {
+  return JSON.parse(
+    JSON.stringify(obj, (_, value) => (value === undefined ? null : value))
+  );
 }
 
 /**
@@ -226,14 +233,14 @@ export async function createOnlineRoom(state: GameState): Promise<boolean> {
       legendaryOpen: state.legendaryOpen || [],
     };
 
-    const payload = {
+    const payload = cleanPayload({
       ...state,
       market,
       currentTurnIndex: state.currentTurnPlayerIndex,
       currentTurnPlayerIndex: state.currentTurnPlayerIndex,
       players: state.players || [],
       updatedAt: Date.now(),
-    };
+    });
 
     await set(roomRef, payload);
     console.log(`[Firebase RTDB] Room created successfully: rooms/${state.roomId}`);
@@ -265,7 +272,7 @@ export async function getOnlineRoom(roomId: string): Promise<GameState | null> {
 }
 
 /**
- * 3. 방 참가하기 (검증 후 players 배열에 추가)
+ * 3. 방 참가하기 (runTransaction을 사용하여 3인 이상 동시 참가 시 동시성/덮어쓰기 문제 완벽 방지)
  */
 export async function joinOnlineRoom(
   roomId: string,
@@ -278,50 +285,66 @@ export async function joinOnlineRoom(
 
   try {
     const roomRef = ref(rtdb, `rooms/${roomId}`);
-    const snap = await get(roomRef);
 
-    if (!snap.exists()) {
-      return { success: false, error: '존재하지 않는 방 코드입니다.' };
+    let joinFailureReason: string | null = null;
+
+    const result = await runTransaction(roomRef, (currentData) => {
+      // 1. 방이 존재하지 않는 경우
+      if (currentData === null) {
+        joinFailureReason = '존재하지 않는 방 코드입니다.';
+        return; // 트랜잭션 중단 (abort)
+      }
+
+      // 2. 이미 게임이 시작된 경우
+      if (currentData.status && currentData.status !== 'waiting') {
+        joinFailureReason = '이미 게임이 진행 중인 방입니다.';
+        return; // 트랜잭션 중단
+      }
+
+      // 플레이어 배열 정규화
+      let currentPlayers = currentData.players || [];
+      if (!Array.isArray(currentPlayers) && typeof currentPlayers === 'object') {
+        currentPlayers = Object.values(currentPlayers);
+      }
+
+      // 이미 방에 존재하는 플레이어인지 확인 (재접속 케이스)
+      const existingIdx = currentPlayers.findIndex((p: any) => p && p.id === player.id);
+      if (existingIdx !== -1) {
+        // 이미 접속된 상태 유지 및 정보 최신화
+        currentPlayers[existingIdx] = {
+          ...currentPlayers[existingIdx],
+          ...player,
+          isConnected: true,
+        };
+      } else {
+        // 3. 최대 4인 정원 검사
+        if (currentPlayers.length >= 4) {
+          joinFailureReason = '방이 이미 꽉 찼습니다. (최대 4인)';
+          return; // 트랜잭션 중단
+        }
+        currentPlayers.push(player);
+      }
+
+      currentData.players = currentPlayers;
+      currentData.playerCount = currentPlayers.length;
+      currentData.updatedAt = Date.now();
+
+      return currentData;
+    });
+
+    if (!result.committed) {
+      return {
+        success: false,
+        error: joinFailureReason || '방에 참가하지 못했습니다. (정원 초과 또는 게임 진행 중)',
+      };
     }
 
-    const roomData = sanitizeGameState(snap.val());
-
-    if (roomData.status !== 'waiting') {
-      return { success: false, error: '이미 게임이 진행 중인 방입니다.' };
-    }
-
-    const currentPlayers = roomData.players || [];
-
-    // 이미 참가 중인 플레이어인 경우 재접속 허용
-    const existingIndex = currentPlayers.findIndex((p) => p.id === player.id);
-    if (existingIndex !== -1) {
-      return { success: true, room: roomData };
-    }
-
-    // 4명 정원 초과 차단
-    if (currentPlayers.length >= 4) {
-      return { success: false, error: '방이 이미 꽉 찼습니다. (최대 4인)' };
-    }
-
-    const updatedPlayers = [...currentPlayers, player];
-    const updates = {
-      players: updatedPlayers,
-      playerCount: updatedPlayers.length,
-      updatedAt: Date.now(),
-    };
-
-    await update(roomRef, updates);
-
-    const updatedRoom: GameState = {
-      ...roomData,
-      ...updates,
-    };
-
-    console.log(`[Firebase RTDB] Player joined room: rooms/${roomId}`, player.name);
+    const updatedRoom = sanitizeGameState(result.snapshot.val());
+    console.log(`[Firebase RTDB] Player safely joined room: rooms/${roomId}`, player.name);
     return { success: true, room: updatedRoom };
   } catch (err: any) {
     console.error(`[Firebase RTDB] Error joining room ${roomId}:`, err);
-    return { success: false, error: err.message || '방 참가에 실패했습니다.' };
+    return { success: false, error: err.message || '방 참가 중 오류가 발생했습니다.' };
   }
 }
 
@@ -387,19 +410,46 @@ export async function updateOnlineRoom(roomId: string, state: GameState): Promis
       legendaryOpen: state.legendaryOpen || [],
     };
 
-    const payload = {
+    const payload = cleanPayload({
       ...state,
       market,
       currentTurnIndex: state.currentTurnPlayerIndex,
       currentTurnPlayerIndex: state.currentTurnPlayerIndex,
       players: state.players || [],
       updatedAt: Date.now(),
-    };
+    });
 
     await set(roomRef, payload);
     return true;
   } catch (err) {
     console.error(`[Firebase RTDB] Error updating room ${roomId}:`, err);
+    return false;
+  }
+}
+
+/**
+ * 턴(차례) 전용 실시간 업데이트 (rooms/[방코드]/currentTurnIndex 및 currentTurnPlayerIndex 갱신)
+ */
+export async function updateOnlineRoomTurn(
+  roomId: string,
+  newTurnIndex: number
+): Promise<boolean> {
+  const rtdb = db || initFirebase();
+  if (!rtdb) return false;
+
+  try {
+    const roomRef = ref(rtdb, `rooms/${roomId}`);
+    await update(roomRef, {
+      currentTurnIndex: newTurnIndex,
+      currentTurnPlayerIndex: newTurnIndex,
+      turnStartTime: Date.now(),
+      hasEvolvedThisTurn: false,
+      actionTakenThisTurn: false,
+      updatedAt: Date.now(),
+    });
+    return true;
+  } catch (err) {
+    console.error(`[Firebase RTDB] Error updating turn for room ${roomId}:`, err);
     return false;
   }
 }

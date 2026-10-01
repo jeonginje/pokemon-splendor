@@ -83,10 +83,23 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const currentPlayerIndex = gameState.currentTurnPlayerIndex;
-  const currentPlayer = gameState.players[currentPlayerIndex];
+  const currentPlayer =
+    (gameState.players && gameState.players[currentPlayerIndex]) ||
+    gameState.players?.[0] || {
+      id: 'default-player',
+      name: '트레이너',
+      trainerId: 'trainer-ash',
+      balls: { monster: 0, super: 0, hyper: 0, heal: 0, quick: 0, master: 0 },
+      capturedCards: [],
+      reservedCards: [],
+      evolvedCards: [],
+      score: 0,
+      isReady: true,
+      isConnected: true,
+    };
 
   // 내 차례 여부 판별 (로컬 모드면 항상 현재 턴 플레이어, 온라인 모드면 myPlayerId 기준)
-  const isMyTurn = isOnline ? currentPlayer.id === myPlayerId : true;
+  const isMyTurn = isOnline ? currentPlayer?.id === myPlayerId : true;
 
   // 턴 변경 시 1.5초 팝업 트리거
   React.useEffect(() => {
@@ -320,12 +333,17 @@ export const Board: React.FC<BoardProps> = ({
                 tier={tier}
                 openIndex={idx}
                 from="open"
-                currentPlayer={isMyTurn && !isActionProcessing ? currentPlayer : undefined}
+                currentPlayer={currentPlayer}
                 isMyTurn={isMyTurn && !isActionProcessing}
                 hasEvolvedThisTurn={gameState.hasEvolvedThisTurn}
                 onCapture={isMyTurn && !isActionProcessing ? handleCaptureCard : undefined}
                 onReserve={isMyTurn && !isActionProcessing ? handleReserveCard : undefined}
                 onEvolve={isMyTurn && !isActionProcessing ? handleEvolveCard : undefined}
+                onCardClick={() => {
+                  if (isOnline && !isMyTurn) {
+                    showToast('지금은 상대방의 차례입니다.');
+                  }
+                }}
               />
             );
           })}
@@ -525,14 +543,17 @@ export const Board: React.FC<BoardProps> = ({
               onTakeDifferentBalls={handleTakeDifferentBalls}
               onTakeTwoSameBalls={handleTakeTwoSameBalls}
               onEndTurn={handleEndTurn}
+              onNotMyTurn={() => {
+                if (isOnline && !isMyTurn) {
+                  showToast('지금은 상대방의 차례입니다.');
+                }
+              }}
             />
           </div>
 
-          {/* 1-B. 좌측 하단: 포켓몬 카드 마켓 (남은 높이 flex-1 min-h-0) */}
+          {/* 1-B. 좌측 하단: 포켓몬 카드 마켓 (남은 높이 flex-1 min-h-0) - 스크롤 및 관전 자유 보장 */}
           <div
-            className={`flex-1 min-h-0 flex flex-col bg-white/[0.06] border-2 border-white/15 rounded-3xl p-2.5 sm:p-3.5 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-300 relative ${
-              !isMyTurn ? 'opacity-50 pointer-events-none filter grayscale-[25%]' : ''
-            }`}
+            className="flex-1 min-h-0 flex flex-col bg-white/[0.06] border-2 border-white/15 rounded-3xl p-2.5 sm:p-3.5 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-300 relative"
           >
             <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2">
@@ -541,8 +562,8 @@ export const Board: React.FC<BoardProps> = ({
                   포켓몬 카드 마켓 (상점 구역)
                 </h2>
                 {!isMyTurn && (
-                  <span className="text-[10px] sm:text-xs font-black text-amber-300/90 bg-amber-400/15 border border-amber-400/30 px-2 py-0.2 rounded-full animate-pulse whitespace-nowrap">
-                    ⏳ 상대방 차례...
+                  <span className="text-[10px] sm:text-xs font-black text-amber-300/90 bg-amber-400/15 border border-amber-400/30 px-2 py-0.2 rounded-full whitespace-nowrap">
+                    👁️ 관전 모드 (상대방 차례)
                   </span>
                 )}
               </div>

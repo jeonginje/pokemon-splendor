@@ -11,6 +11,7 @@ interface SupplyBoardProps {
   onTakeDifferentBalls: (balls: BallType[]) => void;
   onTakeTwoSameBalls: (ball: BallType) => void;
   onEndTurn: () => void;
+  onNotMyTurn?: () => void;
 }
 
 export const SupplyBoard: React.FC<SupplyBoardProps> = ({
@@ -19,6 +20,7 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
   onTakeDifferentBalls,
   onTakeTwoSameBalls,
   onEndTurn,
+  onNotMyTurn,
 }) => {
   const [selectedBalls, setSelectedBalls] = useState<BallType[]>([]);
 
@@ -27,7 +29,11 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
   const targetDifferentCount = Math.min(3, availableTypes.length);
 
   const toggleSelectBall = (ball: BallType) => {
-    if (!isMyTurn || ball === 'master') return;
+    if (ball === 'master') return;
+    if (!isMyTurn) {
+      if (onNotMyTurn) onNotMyTurn();
+      return;
+    }
 
     if (selectedBalls.includes(ball)) {
       setSelectedBalls(selectedBalls.filter((b) => b !== ball));
@@ -39,11 +45,19 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
   };
 
   const handleConfirmDifferent = () => {
+    if (!isMyTurn) {
+      if (onNotMyTurn) onNotMyTurn();
+      return;
+    }
     onTakeDifferentBalls(selectedBalls);
     setSelectedBalls([]);
   };
 
   const handleTakeTwo = (ball: BallType) => {
+    if (!isMyTurn) {
+      if (onNotMyTurn) onNotMyTurn();
+      return;
+    }
     onTakeTwoSameBalls(ball);
     setSelectedBalls([]);
   };
@@ -52,9 +66,7 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
 
   return (
     <div
-      className={`w-full bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 shadow-xl backdrop-blur-md transition-all duration-300 flex items-center justify-between gap-3 overflow-x-auto ${
-        !isMyTurn ? 'opacity-60 pointer-events-none filter grayscale-[25%]' : ''
-      }`}
+      className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 shadow-xl backdrop-blur-md transition-all duration-300 flex items-center justify-between gap-3 overflow-x-auto"
     >
       {/* 1. 타이틀 & 가이드 (너비 고정 min-w-[150px]) */}
       <div className="flex items-center gap-2 shrink-0 pr-2 border-r border-white/10 min-w-[150px]">
@@ -118,7 +130,7 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
                 count={count}
                 size="sm"
                 selected={isSelected}
-                disabled={!isMyTurn || count === 0}
+                disabled={count === 0}
                 onClick={() => toggleSelectBall(b)}
                 showName
               />

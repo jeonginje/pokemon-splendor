@@ -17,6 +17,7 @@ interface CardViewProps {
   onCapture?: (card: PokemonCard, from: 'open' | 'reserved', tier: CardTier, openIndex?: number) => void;
   onReserve?: (card: PokemonCard, tier: 1 | 2 | 3, openIndex?: number) => void;
   onEvolve?: (card: PokemonCard, from: 'open' | 'reserved', tier: 2 | 3, openIndex?: number) => void;
+  onCardClick?: () => void;
   compact?: boolean;
 }
 
@@ -31,6 +32,7 @@ export const CardView: React.FC<CardViewProps> = ({
   onCapture,
   onReserve,
   onEvolve,
+  onCardClick,
   compact = false,
 }) => {
   const [imageInfo, setImageInfo] = useState(() => getCardDisplayImage(card));
@@ -107,6 +109,7 @@ export const CardView: React.FC<CardViewProps> = ({
 
   return (
     <div
+      onClick={onCardClick}
       className={`card-spring relative rounded-2xl sm:rounded-3xl border-2 sm:border-3 flex flex-col justify-between overflow-hidden cursor-pointer select-none transition-all
         ${style.frame} ${style.shadow}
         ${isSpecial ? 'ring-4 ring-amber-300 shadow-amber-400/60' : ''}
