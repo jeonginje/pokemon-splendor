@@ -15,7 +15,6 @@ import {
   Users,
   Play,
   Globe,
-  Settings,
   BookOpen,
   Sparkles,
   ShieldCheck,
@@ -25,14 +24,13 @@ import {
 
 interface LobbyProps {
   onStartGame: (state: GameState, isOnline: boolean, myPlayerId: string) => void;
-  onOpenFirebaseConfig: () => void;
+  onOpenFirebaseConfig?: () => void;
   onOpenRules: () => void;
   onOpenAdmin: () => void;
 }
 
 export const Lobby: React.FC<LobbyProps> = ({
   onStartGame,
-  onOpenFirebaseConfig,
   onOpenRules,
   onOpenAdmin,
 }) => {
@@ -342,19 +340,6 @@ export const Lobby: React.FC<LobbyProps> = ({
           >
             <BookOpen className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span className="whitespace-nowrap">룰 요약</span>
-          </button>
-          <button
-            type="button"
-            onClick={onOpenFirebaseConfig}
-            className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border text-xs sm:text-sm font-black flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
-              hasFirebase
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 shadow-[0_3px_0_#000] active:translate-y-0.5'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
-            }`}
-            title="Firebase 설정"
-          >
-            <Settings className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span className="whitespace-nowrap">{hasFirebase ? 'Firebase' : '연동 필요'}</span>
           </button>
         </div>
       </div>

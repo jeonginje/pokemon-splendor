@@ -3,7 +3,6 @@ import type { GameState } from './types/game';
 import { Lobby } from './components/Lobby';
 import { Board } from './components/Board';
 import { RulesModal } from './components/RulesModal';
-import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { AdminStudioModal } from './components/AdminStudioModal';
 import { subscribeToOnlineRoom, initFirebase } from './services/firebase';
 
@@ -13,7 +12,6 @@ export function App() {
   const [myPlayerId, setMyPlayerId] = useState<string>('');
 
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [isFirebaseConfigOpen, setIsFirebaseConfigOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   // 앱 로드시 Firebase 초기화 시도
@@ -62,7 +60,6 @@ export function App() {
           <div className="py-8 px-4 flex items-center justify-center min-h-[90vh]">
             <Lobby
               onStartGame={handleStartGame}
-              onOpenFirebaseConfig={() => setIsFirebaseConfigOpen(true)}
               onOpenRules={() => setIsRulesOpen(true)}
               onOpenAdmin={() => setIsAdminOpen(true)}
             />
@@ -72,15 +69,6 @@ export function App() {
 
       {/* 룰북 모달 */}
       <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
-
-      {/* Firebase 설정 모달 */}
-      <FirebaseConfigModal
-        isOpen={isFirebaseConfigOpen}
-        onClose={() => setIsFirebaseConfigOpen(false)}
-        onConfigSaved={() => {
-          // 필요 시 리렌더링
-        }}
-      />
 
       {/* 관리자 그림 교체 스튜디오 모달 */}
       <AdminStudioModal isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />

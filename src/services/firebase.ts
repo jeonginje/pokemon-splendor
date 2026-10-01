@@ -22,10 +22,21 @@ export interface FirebaseConfig {
   appId: string;
 }
 
+// 🔑 프로젝트 기본 내장 Firebase 설정
+export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: "AIzaSyDuz-fugu1kzJJRYaUFYcb9e4DL44bHUVc",
+  authDomain: "splenderpoke.firebaseapp.com",
+  databaseURL: "https://splenderpoke-default-rtdb.firebaseio.com",
+  projectId: "splenderpoke",
+  storageBucket: "splenderpoke.firebasestorage.app",
+  messagingSenderId: "429630255604",
+  appId: "1:429630255604:web:69d019fdde4f77050c89a1",
+};
+
 const STORAGE_KEY = 'pokemon_splendor_firebase_config';
 
-// 1. 설정 로드: index.html 전역 객체 -> localStorage -> 환경 변수 순서로 탐색
-export function getStoredFirebaseConfig(): FirebaseConfig | null {
+// 1. 설정 로드: index.html 전역 객체 -> localStorage -> 환경 변수 -> 기본 내장 설정 순서
+export function getStoredFirebaseConfig(): FirebaseConfig {
   // A. index.html의 window.firebaseConfig 확인
   if (typeof window !== 'undefined' && (window as any).firebaseConfig) {
     const htmlConfig = (window as any).firebaseConfig;
@@ -59,25 +70,8 @@ export function getStoredFirebaseConfig(): FirebaseConfig | null {
     }
   }
 
-  // C. Vite .env 환경변수 확인
-  const envConfig: FirebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-    databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-  };
-
-  if (envConfig.apiKey && (envConfig.projectId || envConfig.databaseURL)) {
-    if (!envConfig.databaseURL && envConfig.projectId) {
-      envConfig.databaseURL = `https://${envConfig.projectId}-default-rtdb.firebaseio.com`;
-    }
-    return envConfig;
-  }
-
-  return null;
+  // C. 기본 내장 설정 반환
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 export function saveStoredFirebaseConfig(config: FirebaseConfig) {
