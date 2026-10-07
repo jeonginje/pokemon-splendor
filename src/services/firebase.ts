@@ -253,7 +253,7 @@ export async function getOnlineRoom(roomId: string): Promise<GameState | null> {
 }
 
 /**
- * 3. 방 참가하기 (runTransaction을 사용하여 3인 이상 동시 참가 시 동시성/덮어쓰기 문제 완벽 방지)
+ * 3. 방 참가하기 (사전 get 검증 + players 경로 runTransaction으로 동시성 및 initial null 버그 완벽 해결)
  */
 export async function joinOnlineRoom(
   roomId: string,
@@ -267,61 +267,69 @@ export async function joinOnlineRoom(
   try {
     const roomRef = ref(rtdb, `rooms/${roomId}`);
 
+    // 1. 방 존재 여부 및 상태 선행 검증 (서버 실시간 조회)
+    const roomSnap = await get(roomRef);
+    if (!roomSnap.exists()) {
+      return { success: false, error: '존재하지 않는 방 코드입니다.' };
+    }
+
+    const currentRoomRaw = roomSnap.val();
+    if (currentRoomRaw.status && currentRoomRaw.status !== 'waiting') {
+      return { success: false, error: '이미 게임이 진행 중인 방입니다.' };
+    }
+
+    // 2. players 배열에 대해 원자적 트랜잭션 수행
+    const playersRef = ref(rtdb, `rooms/${roomId}/players`);
     let joinFailureReason: string | null = null;
 
-    const result = await runTransaction(roomRef, (currentData) => {
-      // 1. 방이 존재하지 않는 경우
-      if (currentData === null) {
-        joinFailureReason = '존재하지 않는 방 코드입니다.';
-        return; // 트랜잭션 중단 (abort)
+    const result = await runTransaction(playersRef, (currentPlayers) => {
+      // Firebase RTDB 특성: 첫 번째 호출 시 로컬 캐시가 없으면 null이 올 수 있음 -> abort하지 않고 그대로 리턴하여 서버 데이터 대기
+      if (currentPlayers === null) {
+        return currentPlayers;
       }
 
-      // 2. 이미 게임이 시작된 경우
-      if (currentData.status && currentData.status !== 'waiting') {
-        joinFailureReason = '이미 게임이 진행 중인 방입니다.';
-        return; // 트랜잭션 중단
-      }
+      let arr = Array.isArray(currentPlayers) ? currentPlayers : Object.values(currentPlayers);
 
-      // 플레이어 배열 정규화
-      let currentPlayers = currentData.players || [];
-      if (!Array.isArray(currentPlayers) && typeof currentPlayers === 'object') {
-        currentPlayers = Object.values(currentPlayers);
-      }
-
-      // 이미 방에 존재하는 플레이어인지 확인 (재접속 케이스)
-      const existingIdx = currentPlayers.findIndex((p: any) => p && p.id === player.id);
+      // 이미 방에 있는 플레이어인지 확인 (재접속)
+      const existingIdx = arr.findIndex((p: any) => p && p.id === player.id);
       if (existingIdx !== -1) {
-        // 이미 접속된 상태 유지 및 정보 최신화
-        currentPlayers[existingIdx] = {
-          ...currentPlayers[existingIdx],
+        arr[existingIdx] = {
+          ...arr[existingIdx],
           ...player,
           isConnected: true,
         };
       } else {
-        // 3. 최대 4인 정원 검사
-        if (currentPlayers.length >= 4) {
+        // 정원 검사 (최대 4인)
+        if (arr.length >= 4) {
           joinFailureReason = '방이 이미 꽉 찼습니다. (최대 4인)';
-          return; // 트랜잭션 중단
+          return; // abort
         }
-        currentPlayers.push(player);
+        arr.push(player);
       }
 
-      currentData.players = currentPlayers;
-      currentData.playerCount = currentPlayers.length;
-      currentData.updatedAt = Date.now();
-
-      return currentData;
+      return arr;
     });
 
     if (!result.committed) {
       return {
         success: false,
-        error: joinFailureReason || '방에 참가하지 못했습니다. (정원 초과 또는 게임 진행 중)',
+        error: joinFailureReason || '방 참가를 완료하지 못했습니다.',
       };
     }
 
-    const updatedRoom = sanitizeGameState(result.snapshot.val());
-    console.log(`[Firebase RTDB] Player safely joined room: rooms/${roomId}`, player.name);
+    const updatedPlayers = Array.isArray(result.snapshot.val()) ? result.snapshot.val() : Object.values(result.snapshot.val() || {});
+
+    // 3. 인원 수 및 갱신 시간 반영
+    await update(roomRef, {
+      playerCount: updatedPlayers.length,
+      updatedAt: Date.now(),
+    });
+
+    // 최신 방 전체 데이터 반환
+    const finalRoomSnap = await get(roomRef);
+    const updatedRoom = sanitizeGameState(finalRoomSnap.val());
+
+    console.log(`[Firebase RTDB] Player successfully joined room: rooms/${roomId}`, player.name);
     return { success: true, room: updatedRoom };
   } catch (err: any) {
     console.error(`[Firebase RTDB] Error joining room ${roomId}:`, err);
