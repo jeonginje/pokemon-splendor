@@ -5,12 +5,13 @@ import { TRAINER_TILES } from '../data/trainerTiles';
 import { BallToken } from './BallToken';
 import { CardView } from './CardView';
 import { getPlayerBonuses, getPlayerTotalBalls } from '../utils/gameLogic';
-import { Trophy, Dna, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, Dna, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
 interface PlayerPanelProps {
   player: PlayerState;
   isCurrentTurn: boolean;
   isMe: boolean;
+  isOnline?: boolean;
   gameState: GameState;
   onCaptureReserved?: (card: PokemonCard) => void;
   onEvolveReserved?: (card: PokemonCard) => void;
@@ -20,6 +21,7 @@ const PlayerPanelComponent: React.FC<PlayerPanelProps> = ({
   player,
   isCurrentTurn,
   isMe,
+  isOnline = false,
   gameState,
   onCaptureReserved,
   onEvolveReserved,
@@ -188,21 +190,50 @@ const PlayerPanelComponent: React.FC<PlayerPanelProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-row items-center gap-2 overflow-x-auto py-0.5 pr-1">
-                  {player.reservedCards.map((card) => (
-                    <div key={card.id} className="shrink-0">
-                      <CardView
-                        card={card}
-                        tier={card.tier}
-                        from="reserved"
-                        compact
-                        currentPlayer={isMe ? player : (isCurrentTurn ? player : undefined)}
-                        isMyTurn={isCurrentTurn && isMe}
-                        hasEvolvedThisTurn={gameState.hasEvolvedThisTurn}
-                        onCapture={() => onCaptureReserved && onCaptureReserved(card)}
-                        onEvolve={() => onEvolveReserved && onEvolveReserved(card)}
-                      />
-                    </div>
-                  ))}
+                  {/* 온라인 대전 시 다른 플레이어의 보관 카드는 비밀 카드 뒷면으로 표시 */}
+                  {isOnline && !isMe ? (
+                    player.reservedCards.map((card, idx) => (
+                      <div
+                        key={card.id || `secret-${idx}`}
+                        className="h-[130px] w-auto aspect-[5/7] shrink-0 rounded-xl bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-indigo-500/40 shadow-[0_4px_10px_rgba(0,0,0,0.6)] flex flex-col items-center justify-between p-2 select-none relative overflow-hidden"
+                        title="상대방이 보관한 비공개 카드입니다."
+                      >
+                        {/* 카드 뒷면 장식 테두리 */}
+                        <div className="absolute inset-1 rounded-lg border border-indigo-400/20 pointer-events-none" />
+                        <div className="flex items-center justify-between w-full text-[9px] text-indigo-400 font-extrabold z-10">
+                          <span>SECRET</span>
+                          <Lock className="w-3 h-3 text-amber-400" />
+                        </div>
+                        <div className="flex flex-col items-center justify-center my-auto z-10">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/30 via-purple-600/30 to-indigo-900/40 border border-indigo-400/40 flex items-center justify-center shadow-inner mb-1">
+                            <span className="text-lg filter drop-shadow">🔮</span>
+                          </div>
+                          <span className="text-[10px] font-black text-indigo-200 tracking-tight whitespace-nowrap">
+                            비공개 카드
+                          </span>
+                        </div>
+                        <div className="text-[8px] font-bold text-slate-400 bg-slate-950/80 px-1.5 py-0.2 rounded border border-white/5 whitespace-nowrap z-10">
+                          {idx + 1}번째 보관
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    player.reservedCards.map((card) => (
+                      <div key={card.id} className="shrink-0">
+                        <CardView
+                          card={card}
+                          tier={card.tier}
+                          from="reserved"
+                          compact
+                          currentPlayer={isMe ? player : (isCurrentTurn ? player : undefined)}
+                          isMyTurn={isCurrentTurn && isMe}
+                          hasEvolvedThisTurn={gameState.hasEvolvedThisTurn}
+                          onCapture={() => onCaptureReserved && onCaptureReserved(card)}
+                          onEvolve={() => onEvolveReserved && onEvolveReserved(card)}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>

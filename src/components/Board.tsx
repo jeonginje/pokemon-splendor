@@ -700,6 +700,7 @@ export const Board: React.FC<BoardProps> = ({
                   player={p}
                   isCurrentTurn={idx === currentPlayerIndex}
                   isMe={p.id === myPlayerId}
+                  isOnline={isOnline}
                   gameState={gameState}
                   onCaptureReserved={
                     canInteract
