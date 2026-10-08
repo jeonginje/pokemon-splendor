@@ -248,59 +248,83 @@ const CardViewComponent: React.FC<CardViewProps> = ({
 
       {/* 4. 하단: 자원 비용 토큰 & 액션 버튼 (항상 1줄 가로 나열로 포켓몬 일러스트 크기 1단계와 동일하게 보장) */}
       <div className="relative z-10 pt-0.5 border-t border-slate-800/90 shrink-0 flex-shrink-0">
-        <div className="flex flex-nowrap items-center justify-center gap-1 mb-0.5 w-full">
-          {Object.entries(card.cost).map(([ballType, count]) => {
-            const b = ballType as BallType;
-            if (!count || count <= 0) return null;
-            const currentBonus = bonuses[b] || 0;
-            const discountedCost = Math.max(0, count - currentBonus);
-            const theme = COST_BALL_THEMES[b] || {
-              badge: 'bg-slate-950/90 border-slate-700/80',
-              gem: 'bg-slate-700 border-slate-500',
-            };
+        <div
+          className={`flex flex-nowrap items-center justify-center ${
+            Object.values(card.cost).filter((c) => c && c > 0).length >= 4 ? 'gap-0.5 sm:gap-1' : 'gap-1'
+          } mb-0.5 w-full`}
+        >
+          {(() => {
+            const costEntries = Object.entries(card.cost).filter(([_, count]) => count && count > 0);
+            const isFourOrMore = costEntries.length >= 4;
 
-            return (
-              <div
-                key={b}
-                className={`flex items-center gap-0.5 sm:gap-1 rounded-md border ${theme.badge} shadow-sm shrink-0 transition-transform hover:scale-105 ${
-                  compact ? 'px-0.5 py-0.2' : 'px-1 sm:px-1.5 py-0.5'
-                }`}
-                title={`${BALL_INFO[b].name}: 필요 ${count}개 (할인 후 ${discountedCost}개)`}
-              >
-                {/* 볼 공급처 및 보너스 볼과 동일한 고유 색상을 입힌 미니 보석 원형 프레임 */}
+            return costEntries.map(([ballType, count]) => {
+              const b = ballType as BallType;
+              const currentBonus = bonuses[b] || 0;
+              const discountedCost = Math.max(0, count - currentBonus);
+              const theme = COST_BALL_THEMES[b] || {
+                badge: 'bg-slate-950/90 border-slate-700/80',
+                gem: 'bg-slate-700 border-slate-500',
+              };
+
+              return (
                 <div
-                  className={`rounded-full ${theme.gem} border flex items-center justify-center shrink-0 overflow-hidden shadow-inner ${
-                    compact ? 'w-3 h-3' : 'w-4 h-4 sm:w-4.5 sm:h-4.5'
+                  key={b}
+                  className={`flex items-center rounded-md border ${theme.badge} shadow-sm shrink-0 transition-transform hover:scale-105 ${
+                    compact
+                      ? 'gap-0.5 px-0.5 py-0.2'
+                      : isFourOrMore
+                      ? 'gap-0.5 px-0.5 sm:px-1 py-0.2 sm:py-0.5'
+                      : 'gap-0.5 sm:gap-1 px-1 sm:px-1.5 py-0.5'
                   }`}
+                  title={`${BALL_INFO[b].name}: 필요 ${count}개 (할인 후 ${discountedCost}개)`}
                 >
-                  {BALL_INFO[b].imageUrl ? (
-                    <img
-                      src={BALL_INFO[b].imageUrl}
-                      alt={BALL_INFO[b].name}
-                      decoding="async"
-                      loading="lazy"
-                      className="w-full h-full object-contain filter drop-shadow select-none scale-125"
-                    />
-                  ) : (
-                    <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} leading-none`}>
-                      {BALL_INFO[b].emoji}
-                    </span>
-                  )}
-                </div>
+                  {/* 볼 공급처 및 보너스 볼과 동일한 고유 색상을 입힌 미니 보석 원형 프레임 */}
+                  <div
+                    className={`rounded-full ${theme.gem} border flex items-center justify-center shrink-0 overflow-hidden shadow-inner ${
+                      compact
+                        ? 'w-3 h-3'
+                        : isFourOrMore
+                        ? 'w-3.5 h-3.5 sm:w-4 sm:h-4'
+                        : 'w-4 h-4 sm:w-4.5 sm:h-4.5'
+                    }`}
+                  >
+                    {BALL_INFO[b].imageUrl ? (
+                      <img
+                        src={BALL_INFO[b].imageUrl}
+                        alt={BALL_INFO[b].name}
+                        decoding="async"
+                        loading="lazy"
+                        className="w-full h-full object-contain filter drop-shadow select-none scale-125"
+                      />
+                    ) : (
+                      <span
+                        className={`${
+                          compact ? 'text-[7px]' : isFourOrMore ? 'text-[8px]' : 'text-[10px]'
+                        } leading-none`}
+                      >
+                        {BALL_INFO[b].emoji}
+                      </span>
+                    )}
+                  </div>
 
-                <span
-                  className={`font-black leading-none whitespace-nowrap ${
-                    compact ? 'text-[10px]' : 'text-[12px] sm:text-[14px]'
-                  } ${
-                    discountedCost === 0 ? 'text-emerald-400 line-through' : 'text-white'
-                  }`}
-                  style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.9)' }}
-                >
-                  {discountedCost === 0 ? count : discountedCost}
-                </span>
-              </div>
-            );
-          })}
+                  <span
+                    className={`font-black leading-none whitespace-nowrap ${
+                      compact
+                        ? 'text-[10px]'
+                        : isFourOrMore
+                        ? 'text-[10px] sm:text-[12px]'
+                        : 'text-[12px] sm:text-[14px]'
+                    } ${
+                      discountedCost === 0 ? 'text-emerald-400 line-through' : 'text-white'
+                    }`}
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.9)' }}
+                  >
+                    {discountedCost === 0 ? count : discountedCost}
+                  </span>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* 인터랙션 버튼 (내 차례일 때 활성화) */}
