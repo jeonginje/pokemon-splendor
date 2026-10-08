@@ -4,9 +4,11 @@ import { Lobby } from './components/Lobby';
 import { Board } from './components/Board';
 import { RulesModal } from './components/RulesModal';
 import { AdminStudioModal } from './components/AdminStudioModal';
+import { LoadingScreen } from './components/LoadingScreen';
 import { subscribeToOnlineRoom, initFirebase } from './services/firebase';
 
 export function App() {
+  const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [myPlayerId, setMyPlayerId] = useState<string>('');
@@ -43,6 +45,10 @@ export function App() {
     setIsOnline(false);
     setMyPlayerId('');
   };
+
+  if (!isAssetsLoaded) {
+    return <LoadingScreen onComplete={() => setIsAssetsLoaded(true)} />;
+  }
 
   return (
     <div className={`min-h-screen text-slate-100 flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950 transition-colors duration-500 ${gameState ? 'bg-slate-950' : 'animated-lobby-bg'}`}>

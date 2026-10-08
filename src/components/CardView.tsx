@@ -21,7 +21,7 @@ interface CardViewProps {
   compact?: boolean;
 }
 
-export const CardView: React.FC<CardViewProps> = ({
+const CardViewComponent: React.FC<CardViewProps> = ({
   card,
   tier,
   openIndex,
@@ -171,6 +171,8 @@ export const CardView: React.FC<CardViewProps> = ({
             <img
               src={imageInfo.url}
               alt={card.name}
+              decoding="async"
+              loading="eager"
               onError={() => setImageError(true)}
               className="w-full h-full max-w-full max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] select-none transition-transform hover:scale-105 duration-200"
             />
@@ -229,6 +231,8 @@ export const CardView: React.FC<CardViewProps> = ({
                   <img
                     src={BALL_INFO[b].imageUrl}
                     alt={BALL_INFO[b].name}
+                    decoding="async"
+                    loading="lazy"
                     className={`object-contain filter drop-shadow select-none shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4 sm:w-[18px] sm:h-[18px]'}`}
                   />
                 ) : (
@@ -300,3 +304,5 @@ export const CardView: React.FC<CardViewProps> = ({
     </div>
   );
 };
+
+export const CardView = React.memo(CardViewComponent);

@@ -14,7 +14,7 @@ interface SupplyBoardProps {
   onNotMyTurn?: () => void;
 }
 
-export const SupplyBoard: React.FC<SupplyBoardProps> = ({
+const SupplyBoardComponent: React.FC<SupplyBoardProps> = ({
   gameState,
   isMyTurn,
   onTakeDifferentBalls,
@@ -220,3 +220,5 @@ export const SupplyBoard: React.FC<SupplyBoardProps> = ({
     </div>
   );
 };
+
+export const SupplyBoard = React.memo(SupplyBoardComponent);

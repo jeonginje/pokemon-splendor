@@ -16,7 +16,7 @@ interface PlayerPanelProps {
   onEvolveReserved?: (card: PokemonCard) => void;
 }
 
-export const PlayerPanel: React.FC<PlayerPanelProps> = ({
+const PlayerPanelComponent: React.FC<PlayerPanelProps> = ({
   player,
   isCurrentTurn,
   isMe,
@@ -230,3 +230,5 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     </div>
   );
 };
+
+export const PlayerPanel = React.memo(PlayerPanelComponent);

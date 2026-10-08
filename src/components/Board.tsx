@@ -32,6 +32,75 @@ import {
   Lock,
 } from 'lucide-react';
 
+// ⚡ 초시계 타이머 전담 서브 컴포넌트 (Board 전체 리렌더링 방지 및 초경량 60fps 보장)
+interface TurnTimerBadgeProps {
+  turnTimeLimit: number;
+  turnStartTime?: number;
+  createdAt?: number;
+  isFinished: boolean;
+  onTimeout: () => void;
+}
+
+const TurnTimerBadge: React.FC<TurnTimerBadgeProps> = React.memo(({
+  turnTimeLimit,
+  turnStartTime,
+  createdAt,
+  isFinished,
+  onTimeout,
+}) => {
+  const [timeLeft, setTimeLeft] = useState<number>(turnTimeLimit);
+  const hasTimedOutRef = React.useRef(false);
+
+  React.useEffect(() => {
+    hasTimedOutRef.current = false;
+  }, [turnStartTime]);
+
+  React.useEffect(() => {
+    if (!turnTimeLimit || turnTimeLimit <= 0 || isFinished) return;
+
+    const interval = setInterval(() => {
+      const startTime = turnStartTime || createdAt || Date.now();
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, turnTimeLimit - elapsed);
+      setTimeLeft(remaining);
+
+      if (remaining <= 0 && !hasTimedOutRef.current) {
+        hasTimedOutRef.current = true;
+        onTimeout();
+      }
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [turnTimeLimit, turnStartTime, createdAt, isFinished, onTimeout]);
+
+  if (!turnTimeLimit || turnTimeLimit <= 0) return null;
+
+  return (
+    <div className="flex flex-col items-center justify-center shrink-0 min-w-[100px] sm:min-w-[120px]">
+      <div
+        className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-black transition-all ${
+          timeLeft <= 10
+            ? 'bg-red-500/25 text-red-300 border-red-500 animate-pulse ring-2 ring-red-400'
+            : 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+        }`}
+      >
+        <Clock className={`w-3.5 h-3.5 ${timeLeft <= 10 ? 'text-red-400 animate-spin' : 'text-amber-400'}`} />
+        <span className="font-mono text-sm sm:text-base font-black whitespace-nowrap">
+          {timeLeft}초
+        </span>
+      </div>
+      <div className="w-full h-1.5 bg-slate-950 rounded-full mt-1 overflow-hidden border border-slate-700">
+        <div
+          className={`h-full transition-all duration-300 ${
+            timeLeft <= 10 ? 'bg-red-500' : 'bg-gradient-to-r from-amber-400 to-yellow-300'
+          }`}
+          style={{ width: `${Math.min(100, (timeLeft / turnTimeLimit) * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+});
+
 interface BoardProps {
   gameState: GameState;
   isOnline: boolean;
@@ -53,11 +122,9 @@ export const Board: React.FC<BoardProps> = ({
   const [showLogs, setShowLogs] = useState(false);
   const [errorToast, setErrorToast] = useState<string | null>(null);
 
-  // 1. 내 차례 알림 팝업 및 타이머 상태
+  // 1. 내 차례 알림 팝업 상태
   const [showTurnAlert, setShowTurnAlert] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(initialGameState.turnTimeLimit || 0);
   const prevTurnIndexRef = React.useRef(initialGameState.currentTurnPlayerIndex);
-  const hasTimedOutRef = React.useRef(false);
 
   // 로컬 상태 동기화 (부모에서 prop 업데이트 시)
   React.useEffect(() => {
@@ -105,7 +172,6 @@ export const Board: React.FC<BoardProps> = ({
   React.useEffect(() => {
     if (prevTurnIndexRef.current !== gameState.currentTurnPlayerIndex) {
       prevTurnIndexRef.current = gameState.currentTurnPlayerIndex;
-      hasTimedOutRef.current = false;
       if (isMyTurn) {
         setShowTurnAlert(true);
         const timer = setTimeout(() => setShowTurnAlert(false), 1500);
@@ -123,35 +189,17 @@ export const Board: React.FC<BoardProps> = ({
     }
   }, []);
 
-  // 턴 시간 제한 타이머 (300ms 간격 갱신 & 0초 시 강제 턴 종료)
-  React.useEffect(() => {
-    if (!gameState.turnTimeLimit || gameState.turnTimeLimit <= 0 || gameState.status === 'finished') {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const startTime = gameState.turnStartTime || gameState.createdAt || Date.now();
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, gameState.turnTimeLimit - elapsed);
-      setTimeLeft(remaining);
-
-      // 0초 도달 시 자동 턴 종료
-      if (remaining <= 0 && !hasTimedOutRef.current) {
-        hasTimedOutRef.current = true;
-        // 온라인이면 내 턴이거나 방장일 때 턴 종료 실행
-        if (!isOnline || isMyTurn || gameState.players[0].id === myPlayerId) {
-          try {
-            const next = passOrEndTurn(gameState);
-            commitGameState(next);
-          } catch (e) {
-            console.error('Auto turn timeout error:', e);
-          }
-        }
+  // 턴 초과 시 자동 턴 종료 핸들러
+  const handleAutoTurnTimeout = React.useCallback(() => {
+    if (!isOnline || isMyTurn || gameState.players[0].id === myPlayerId) {
+      try {
+        const next = passOrEndTurn(gameState);
+        commitGameState(next);
+      } catch (e) {
+        console.error('Auto turn timeout error:', e);
       }
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [gameState.currentTurnPlayerIndex, gameState.turnStartTime, gameState.turnTimeLimit, isMyTurn, isOnline]);
+    }
+  }, [gameState, isOnline, isMyTurn, myPlayerId]);
 
   // 액션 중복 실행 및 연타 방지 락
   const [isActionProcessing, setIsActionProcessing] = useState(false);
@@ -433,31 +481,15 @@ export const Board: React.FC<BoardProps> = ({
           </div>
         </div>
 
-        {/* 2. 턴 시간 제한 타이머 배지 & 프로그레스 바 */}
+        {/* 2. 턴 시간 제한 타이머 배지 (독립 최적화 렌더링) */}
         {gameState.turnTimeLimit > 0 && (
-          <div className="flex flex-col items-center justify-center shrink-0 min-w-[100px] sm:min-w-[120px]">
-            <div
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-black transition-all ${
-                timeLeft <= 10
-                  ? 'bg-red-500/25 text-red-300 border-red-500 animate-pulse ring-2 ring-red-400'
-                  : 'bg-amber-400/20 text-amber-300 border-amber-400/40'
-              }`}
-            >
-              <Clock className={`w-3.5 h-3.5 ${timeLeft <= 10 ? 'text-red-400 animate-spin' : 'text-amber-400'}`} />
-              <span className="font-mono text-sm sm:text-base font-black whitespace-nowrap">
-                {timeLeft}초
-              </span>
-            </div>
-            {/* 게이지 바 */}
-            <div className="w-full h-1.5 bg-slate-950 rounded-full mt-1 overflow-hidden border border-slate-700">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  timeLeft <= 10 ? 'bg-red-500' : 'bg-gradient-to-r from-amber-400 to-yellow-300'
-                }`}
-                style={{ width: `${Math.min(100, (timeLeft / gameState.turnTimeLimit) * 100)}%` }}
-              />
-            </div>
-          </div>
+          <TurnTimerBadge
+            turnTimeLimit={gameState.turnTimeLimit}
+            turnStartTime={gameState.turnStartTime}
+            createdAt={gameState.createdAt}
+            isFinished={gameState.status === 'finished'}
+            onTimeout={handleAutoTurnTimeout}
+          />
         )}
 
         <div className="flex items-center gap-1.5">
