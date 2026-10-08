@@ -229,7 +229,7 @@ const CardViewComponent: React.FC<CardViewProps> = ({
       </div>
 
       {/* 3. 포켓몬 이름 & 진화 배지 */}
-      <div className="shrink-0 flex-shrink-0 w-full flex flex-col items-center justify-center text-center my-0.5 z-10 px-0.5">
+      <div className="shrink-0 flex-shrink-0 w-full flex flex-col items-center justify-center text-center my-0 z-10 px-0.5">
         <div className="w-full flex items-center justify-center gap-1 drop-shadow select-none">
           <span className={`font-black leading-tight text-white tracking-wide whitespace-nowrap truncate max-w-[95%] ${compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'}`}>
             {card.name}
@@ -238,17 +238,17 @@ const CardViewComponent: React.FC<CardViewProps> = ({
           {card.tier === 'legendary' && <span className="text-yellow-300 text-xs shrink-0 leading-none">✨</span>}
         </div>
 
-        {/* 진화 전 포켓몬 안내 뱃지 */}
+        {/* 진화 전 포켓몬 안내 뱃지 (높이를 최소화하여 일러스트 영역 보존) */}
         {card.evolvesFrom && !compact && (
-          <div className="text-[9px] sm:text-[10px] text-indigo-300 font-bold bg-indigo-950/90 border border-indigo-500/60 px-1.5 py-0.2 rounded-md shadow whitespace-nowrap mt-0.5">
+          <div className="text-[8px] sm:text-[9px] text-indigo-300 font-bold bg-indigo-950/80 border border-indigo-500/50 px-1 py-0 rounded shadow whitespace-nowrap leading-tight mt-0.5">
             🧬 {card.evolvesFrom}에서 진화
           </div>
         )}
       </div>
 
-      {/* 4. 하단: 자원 비용 토큰 & 액션 버튼 */}
+      {/* 4. 하단: 자원 비용 토큰 & 액션 버튼 (항상 1줄 가로 나열로 포켓몬 일러스트 크기 1단계와 동일하게 보장) */}
       <div className="relative z-10 pt-0.5 border-t border-slate-800/90 shrink-0 flex-shrink-0">
-        <div className="flex flex-wrap items-center justify-center gap-1 mb-0.5">
+        <div className="flex flex-nowrap items-center justify-center gap-1 mb-0.5 w-full">
           {Object.entries(card.cost).map(([ballType, count]) => {
             const b = ballType as BallType;
             if (!count || count <= 0) return null;
@@ -262,15 +262,15 @@ const CardViewComponent: React.FC<CardViewProps> = ({
             return (
               <div
                 key={b}
-                className={`flex items-center gap-1 rounded-md border ${theme.badge} shadow-sm transition-transform hover:scale-105 ${
-                  compact ? 'px-1 py-0.2' : 'px-1.5 py-0.5'
+                className={`flex items-center gap-0.5 sm:gap-1 rounded-md border ${theme.badge} shadow-sm shrink-0 transition-transform hover:scale-105 ${
+                  compact ? 'px-0.5 py-0.2' : 'px-1 sm:px-1.5 py-0.5'
                 }`}
                 title={`${BALL_INFO[b].name}: 필요 ${count}개 (할인 후 ${discountedCost}개)`}
               >
                 {/* 볼 공급처 및 보너스 볼과 동일한 고유 색상을 입힌 미니 보석 원형 프레임 */}
                 <div
                   className={`rounded-full ${theme.gem} border flex items-center justify-center shrink-0 overflow-hidden shadow-inner ${
-                    compact ? 'w-3.5 h-3.5' : 'w-4.5 h-4.5 sm:w-5 sm:h-5'
+                    compact ? 'w-3 h-3' : 'w-4 h-4 sm:w-4.5 sm:h-4.5'
                   }`}
                 >
                   {BALL_INFO[b].imageUrl ? (
@@ -282,7 +282,7 @@ const CardViewComponent: React.FC<CardViewProps> = ({
                       className="w-full h-full object-contain filter drop-shadow select-none scale-125"
                     />
                   ) : (
-                    <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} leading-none`}>
+                    <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} leading-none`}>
                       {BALL_INFO[b].emoji}
                     </span>
                   )}
@@ -290,7 +290,7 @@ const CardViewComponent: React.FC<CardViewProps> = ({
 
                 <span
                   className={`font-black leading-none whitespace-nowrap ${
-                    compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'
+                    compact ? 'text-[10px]' : 'text-[12px] sm:text-[14px]'
                   } ${
                     discountedCost === 0 ? 'text-emerald-400 line-through' : 'text-white'
                   }`}
