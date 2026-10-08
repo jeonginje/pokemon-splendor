@@ -139,17 +139,18 @@ export const BallToken: React.FC<BallTokenProps> = ({
         {/* 입체 보석 테두리 내부 은은한 반사 */}
         <div className="absolute inset-0.5 rounded-xl border border-white/40 pointer-events-none shadow-inner" />
 
-        {/* 중앙 실제 볼 사진 (또는 fallback 이모지) */}
-        <div className="flex items-center justify-center w-full h-full p-1 leading-none z-10">
+        {/* 중앙 실제 볼 사진 (또는 fallback 이모지) - 꽉 차게 스케일업 */}
+        <div className="flex items-center justify-center w-full h-full p-0 leading-none z-10 overflow-hidden">
           {!imgError && info.imageUrl ? (
             <img
               src={info.imageUrl}
               alt={info.name}
+              decoding="async"
               onError={() => setImgError(true)}
-              className="w-4/5 h-4/5 object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.8)] select-none pointer-events-none transition-transform hover:scale-110"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.8)] select-none pointer-events-none scale-125 transition-transform hover:scale-130"
             />
           ) : (
-            <span className={`${sizeConfig.emoji} drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] select-none`}>
+            <span className={`${sizeConfig.emoji} drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] select-none scale-110`}>
               {info.emoji}
             </span>
           )}

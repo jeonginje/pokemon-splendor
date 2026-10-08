@@ -195,9 +195,9 @@ const CardViewComponent: React.FC<CardViewProps> = ({
       </div>
 
       {/* 3. 포켓몬 이름 & 진화 배지 */}
-      <div className="shrink-0 flex-shrink-0 w-full flex flex-col items-center justify-center text-center my-0.5 z-10">
-        <div className="w-full flex items-center justify-center gap-1 drop-shadow select-none px-0.5">
-          <span className={`font-black leading-tight text-white tracking-wide whitespace-nowrap truncate max-w-[90%] ${compact ? 'text-[11px]' : 'text-[14px] sm:text-[16px]'}`}>
+      <div className="shrink-0 flex-shrink-0 w-full flex flex-col items-center justify-center text-center my-0.5 z-10 px-0.5">
+        <div className="w-full flex items-center justify-center gap-1 drop-shadow select-none">
+          <span className={`font-black leading-tight text-white tracking-wide whitespace-nowrap truncate max-w-[95%] ${compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'}`}>
             {card.name}
           </span>
           {card.tier === 'rare' && <span className="text-amber-300 text-xs shrink-0 leading-none">🌟</span>}
@@ -233,10 +233,10 @@ const CardViewComponent: React.FC<CardViewProps> = ({
                     alt={BALL_INFO[b].name}
                     decoding="async"
                     loading="lazy"
-                    className={`object-contain filter drop-shadow select-none shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4 sm:w-[18px] sm:h-[18px]'}`}
+                    className={`object-contain filter drop-shadow select-none shrink-0 scale-120 ${compact ? 'w-3.5 h-3.5' : 'w-4.5 h-4.5 sm:w-5 sm:h-5'}`}
                   />
                 ) : (
-                  <span className={`${compact ? 'text-xs' : 'text-sm sm:text-base'} leading-none`}>{BALL_INFO[b].emoji}</span>
+                  <span className={`${compact ? 'text-xs' : 'text-sm sm:text-base'} leading-none scale-110`}>{BALL_INFO[b].emoji}</span>
                 )}
                 <span
                   className={`font-black leading-none whitespace-nowrap ${compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'} ${
