@@ -21,6 +21,40 @@ interface CardViewProps {
   compact?: boolean;
 }
 
+// 하단 필요 비용(코스트) 볼 종류별 고유 테마 색상 (상단 공급처와 동일하게 색상 구분)
+const COST_BALL_THEMES: Record<
+  BallType,
+  {
+    badge: string;
+    gem: string;
+  }
+> = {
+  monster: {
+    badge: 'bg-red-950/90 border-red-500/80 shadow-[0_1px_3px_rgba(239,68,68,0.35)]',
+    gem: 'bg-gradient-to-b from-red-400 via-red-500 to-red-700 border-red-300',
+  },
+  super: {
+    badge: 'bg-blue-950/90 border-blue-500/80 shadow-[0_1px_3px_rgba(59,130,246,0.35)]',
+    gem: 'bg-gradient-to-b from-sky-400 via-blue-500 to-blue-700 border-sky-300',
+  },
+  hyper: {
+    badge: 'bg-amber-950/90 border-amber-400/80 shadow-[0_1px_3px_rgba(251,191,36,0.35)]',
+    gem: 'bg-gradient-to-b from-amber-300 via-yellow-500 to-amber-700 border-yellow-200',
+  },
+  heal: {
+    badge: 'bg-pink-950/90 border-pink-500/80 shadow-[0_1px_3px_rgba(236,72,153,0.35)]',
+    gem: 'bg-gradient-to-b from-pink-300 via-pink-500 to-rose-600 border-pink-200',
+  },
+  quick: {
+    badge: 'bg-cyan-950/90 border-cyan-400/80 shadow-[0_1px_3px_rgba(6,182,212,0.35)]',
+    gem: 'bg-gradient-to-b from-cyan-300 via-teal-400 to-cyan-700 border-cyan-200',
+  },
+  master: {
+    badge: 'bg-purple-950/90 border-purple-500/80 shadow-[0_1px_3px_rgba(168,85,247,0.35)]',
+    gem: 'bg-gradient-to-b from-fuchsia-400 via-purple-600 to-purple-900 border-fuchsia-200',
+  },
+};
+
 const CardViewComponent: React.FC<CardViewProps> = ({
   card,
   tier,
@@ -214,35 +248,53 @@ const CardViewComponent: React.FC<CardViewProps> = ({
 
       {/* 4. 하단: 자원 비용 토큰 & 액션 버튼 */}
       <div className="relative z-10 pt-0.5 border-t border-slate-800/90 shrink-0 flex-shrink-0">
-        <div className="flex flex-wrap items-center justify-center gap-0.5 mb-0.5">
+        <div className="flex flex-wrap items-center justify-center gap-1 mb-0.5">
           {Object.entries(card.cost).map(([ballType, count]) => {
             const b = ballType as BallType;
             if (!count || count <= 0) return null;
             const currentBonus = bonuses[b] || 0;
             const discountedCost = Math.max(0, count - currentBonus);
+            const theme = COST_BALL_THEMES[b] || {
+              badge: 'bg-slate-950/90 border-slate-700/80',
+              gem: 'bg-slate-700 border-slate-500',
+            };
 
             return (
               <div
                 key={b}
-                className={`flex items-center gap-0.5 bg-slate-950/90 rounded border border-slate-700/80 shadow-sm ${compact ? 'px-0.5 py-0.2' : 'px-1 sm:px-1.5 py-0.5'}`}
+                className={`flex items-center gap-1 rounded-md border ${theme.badge} shadow-sm transition-transform hover:scale-105 ${
+                  compact ? 'px-1 py-0.2' : 'px-1.5 py-0.5'
+                }`}
                 title={`${BALL_INFO[b].name}: 필요 ${count}개 (할인 후 ${discountedCost}개)`}
               >
-                {BALL_INFO[b].imageUrl ? (
-                  <img
-                    src={BALL_INFO[b].imageUrl}
-                    alt={BALL_INFO[b].name}
-                    decoding="async"
-                    loading="lazy"
-                    className={`object-contain filter drop-shadow select-none shrink-0 scale-120 ${compact ? 'w-3.5 h-3.5' : 'w-4.5 h-4.5 sm:w-5 sm:h-5'}`}
-                  />
-                ) : (
-                  <span className={`${compact ? 'text-xs' : 'text-sm sm:text-base'} leading-none scale-110`}>{BALL_INFO[b].emoji}</span>
-                )}
-                <span
-                  className={`font-black leading-none whitespace-nowrap ${compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'} ${
-                    discountedCost === 0 ? 'text-emerald-400 line-through' : 'text-amber-300'
+                {/* 볼 공급처 및 보너스 볼과 동일한 고유 색상을 입힌 미니 보석 원형 프레임 */}
+                <div
+                  className={`rounded-full ${theme.gem} border flex items-center justify-center shrink-0 overflow-hidden shadow-inner ${
+                    compact ? 'w-3.5 h-3.5' : 'w-4.5 h-4.5 sm:w-5 sm:h-5'
                   }`}
-                  style={{ textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)' }}
+                >
+                  {BALL_INFO[b].imageUrl ? (
+                    <img
+                      src={BALL_INFO[b].imageUrl}
+                      alt={BALL_INFO[b].name}
+                      decoding="async"
+                      loading="lazy"
+                      className="w-full h-full object-contain filter drop-shadow select-none scale-125"
+                    />
+                  ) : (
+                    <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} leading-none`}>
+                      {BALL_INFO[b].emoji}
+                    </span>
+                  )}
+                </div>
+
+                <span
+                  className={`font-black leading-none whitespace-nowrap ${
+                    compact ? 'text-[11px]' : 'text-[13px] sm:text-[15px]'
+                  } ${
+                    discountedCost === 0 ? 'text-emerald-400 line-through' : 'text-white'
+                  }`}
+                  style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.9)' }}
                 >
                   {discountedCost === 0 ? count : discountedCost}
                 </span>
