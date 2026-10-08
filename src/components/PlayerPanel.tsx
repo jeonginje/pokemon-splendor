@@ -5,7 +5,7 @@ import { TRAINER_TILES } from '../data/trainerTiles';
 import { BallToken } from './BallToken';
 import { CardView } from './CardView';
 import { getPlayerBonuses, getPlayerTotalBalls } from '../utils/gameLogic';
-import { Trophy, Dna, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Star, Dna, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
 interface PlayerPanelProps {
   player: PlayerState;
@@ -85,7 +85,7 @@ const PlayerPanelComponent: React.FC<PlayerPanelProps> = ({
         {/* 승점 & 목표 프로그레스 바 */}
         <div className="flex flex-col items-end shrink-0 whitespace-nowrap">
           <div className="flex items-center gap-1 bg-gradient-to-b from-amber-400/20 to-yellow-500/10 border border-amber-400/60 px-1.5 py-0.5 rounded-xl shadow-sm whitespace-nowrap">
-            <Trophy className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0 drop-shadow" />
             <span className="text-base sm:text-lg font-black text-amber-300 whitespace-nowrap">
               {player.score}
             </span>
